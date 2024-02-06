@@ -97,89 +97,92 @@ app.post('/car', async (req, res) => {
 // Hashes the password and inserts the info into the `user` table
 app.post('/register', async function (req, res) {
   try {
-    console.log('req.body', req.body)
-    const { password, username } = req.body;
+    const { email, password, username } = req.body;
     
-
     const hashedPassword = await bcrypt.hash(password, 10);
-    console.log('username', username)
+
     const [user] = await req.db.query(
-      `INSERT INTO user (user_name, password)
-      VALUES (:username, :hashedPassword);`,
-      { username, hashedPassword });
+      `INSERT INTO user_table (email, password, username)
+      VALUES (:email, :hashedPassword, :username);`,
+      { email, hashedPassword, username});
 
     const jwtEncodedUser = jwt.sign(
-      { userId: user.insertId, ...req.body },
+      { UserID: user.insertId, ...req.body },
       process.env.JWT_KEY
     );
 
-    res.json({ jwt: jwtEncodedUser });
+    res.json({ jwt: jwtEncodedUser, success: true });
   } catch (error) {
     console.log('error', error);
     res.json({ error: 'An error occurred during registration' });
   }
 });
 
-app.post('/log-in', async function (req, res) {
+app.post('/login', async function (req, res) {
   try {
     const { username, password: userEnteredPassword } = req.body;
-    const [[user]] = await req.db.query(`SELECT * FROM user WHERE user_name = :username`, { username });
+    const [[user]] = await req.db.query(`SELECT * FROM user_table WHERE Username = :username`, { username });
 
-    if (!user) res.json('Username not found');
-  
-    const hashedPassword = `${user.password}`
+    if (!user) { 
+       return res.status(404).json({ error: 'Username not found'});
+    }
+
+    const hashedPassword = `${user.Password}`
     const passwordMatches = await bcrypt.compare(userEnteredPassword, hashedPassword);
 
     if (passwordMatches) {
       const payload = {
-        userId: user.id,
-        username: user.username,
+        userId: user.UserID,
+        username: user.Username,
       }
       
       const jwtEncodedUser = jwt.sign(payload, process.env.JWT_KEY);
 
-      res.json({ jwt: jwtEncodedUser });
+      return res.json({ jwt: jwtEncodedUser, success: true });
     } else {
-      res.json('Password not found');
+      // 401 status code for "unauthorized"
+       return res.status(401).json({err: 'Password is incorrect', success: false});
     }
   } catch (err) {
     console.log('Error in /authenticate', err);
+    //500 status code for "internal server error"
+    return res.status(500).json({ error: 'Internal server error', success: false });
   }
 });
 
 // Jwt verification checks to see if there is an authorization header with a valid jwt in it.
 app.use(async function verifyJwt(req, res, next) {
-  const { authorization: authHeader } = req.headers;
-  
-  if (!authHeader) res.json('Invalid authorization, no authorization headers');
-
-  const [scheme, jwtToken] = authHeader.split(' ');
-
-  if (scheme !== 'Bearer') res.json('Invalid authorization, invalid authorization scheme');
-
   try {
+    const { authorization: authHeader } = req.headers;
+
+    if (!authHeader) {
+      return res.status(401).json({ error: 'Invalid authorization, no authorization header' });
+    }
+
+    const [scheme, jwtToken] = authHeader.split(' ');
+
+    if (!scheme || !jwtToken || scheme !== 'Bearer') {
+      return res.status(401).json({ error: 'Invalid authorization, invalid authorization scheme' });
+    }
+
     const decodedJwtObject = jwt.verify(jwtToken, process.env.JWT_KEY);
-
     req.user = decodedJwtObject;
+
+    await next();
   } catch (err) {
-    console.log(err);
-    if (
-      err.message && 
-      (err.message.toUpperCase() === 'INVALID TOKEN' || 
-      err.message.toUpperCase() === 'JWT EXPIRED')
-    ) {
+    console.error(err);
 
-      req.status = err.status || 500;
-      req.body = err.message;
-      req.app.emit('jwt-error', err, req);
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'JWT expired' });
+    } else if (err.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Invalid JWT token' });
     } else {
-
-      throw((err.status || 500), err.message);
+      return res.status(500).json({ error: 'Internal Server Error' });
     }
   }
-
-  await next();
 });
+
+// only protected endpoints after the jwt verification middleware *here*
 
 // Start the Express server
 app.listen(port, () => {
