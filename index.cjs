@@ -58,42 +58,6 @@ app.delete('/car/:id', (req, res) => {
   res.json({ success: true })
 })
 
-// Creates a GET endpoint at <WHATEVER_THE_BASE_URL_IS>/students
-app.get('/car', async (req, res) => {
-  const [cars] = await req.db.query(`SELECT * FROM car;`);
-
-  // Attaches JSON content to the response
-  res.json({ cars });
-});
-
-app.post('/car', async (req, res) => {
-  const { 
-    make_id,
-    model,
-    user_id,
-    deleted_flag
-   } = req.body;
-
-  const [insert] = await req.db.query(`
-    INSERT INTO car (make_id, model, date_created, user_id, deleted_flag)
-    VALUES (:makeId, :model, NOW(), :user_id, :deleted_flag);
-  `, { 
-    make_id, 
-    model, 
-    user_id, 
-    deleted_flag
-  });
-
-  // Attaches JSON content to the response
-  res.json({
-    id: insert.insertId,
-    make_id,
-    model,
-    user_id,
-    deleted_flag
-   });
-});
-
 // Hashes the password and inserts the info into the `user` table
 app.post('/register', async function (req, res) {
   try {
@@ -183,6 +147,47 @@ app.use(async function verifyJwt(req, res, next) {
 });
 
 // only protected endpoints after the jwt verification middleware *here*
+
+app.post('/entry_table', async (req, res) => {
+  const { 
+    newTitleValue,
+    newContentValue,
+    newMoodValue
+   } = req.body;
+
+   const { userId } = req.user;
+
+  const [insert] = await req.db.query(`
+    INSERT INTO entry_table ( UserID, DateCreated, Title, Content, Mood, DeletedFlag)
+    VALUES ( :UserID, NOW(), :newTitleValue, :newContentValue, :newMoodValue, :DeletedFlag);
+  `, { 
+    UserID: userId, 
+    newTitleValue,
+    newContentValue,
+    newMoodValue,
+    DeletedFlag: 0
+  });
+
+  // Attaches JSON content to the response
+  res.json({
+    id: insert.insertId,
+    userId,
+    newTitleValue,
+    newContentValue,
+    newMoodValue,
+   });
+});
+
+// Creates a GET endpoint at <WHATEVER_THE_BASE_URL_IS>/students
+app.get('/entry_table', async (req, res) => {
+  const { userId } = req.user;
+
+  const [entries] = await req.db.query(`SELECT * FROM entry_table WHERE UserID = :userId;`, {
+    userId });
+
+  // Attaches JSON content to the response
+  res.json({ entries });
+});
 
 // Start the Express server
 app.listen(port, () => {
