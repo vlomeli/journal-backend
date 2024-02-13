@@ -54,10 +54,6 @@ app.use(async (req, res, next) => {
   }
 });
 
-app.delete('/car/:id', (req, res) => {
-  res.json({ success: true })
-})
-
 // Hashes the password and inserts the info into the `user` table
 app.post('/register', async function (req, res) {
   try {
@@ -182,12 +178,21 @@ app.post('/entry_table', async (req, res) => {
 app.get('/entry_table', async (req, res) => {
   const { userId } = req.user;
 
-  const [entries] = await req.db.query(`SELECT * FROM entry_table WHERE UserID = :userId;`, {
+  const [entries] = await req.db.query(`SELECT * FROM entry_table WHERE UserID = :userId AND DeletedFlag = 0;`, {
     userId });
 
   // Attaches JSON content to the response
   res.json({ entries });
 });
+
+// deletes from the db
+app.delete('/entry_table/:id', async (req, res) => {
+  const { id: entryId } = req.params;
+
+  await req.db.query(`UPDATE entry_table SET DeletedFlag = 1 WHERE EntryID = :entryId`, {entryId});
+
+  res.json({ success: true });
+})
 
 // Start the Express server
 app.listen(port, () => {
