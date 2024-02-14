@@ -174,6 +174,29 @@ app.post('/entry_table', async (req, res) => {
    });
 });
 
+app.put('/entry_table', async (req, res) => {
+  try {
+  const { id, title, content, mood } = req.body;
+
+   await req.db.query(
+    `UPDATE entry_table SET Title = :title, Content = :content, Mood = :mood WHERE EntryID = :id`, 
+      {
+        id,
+        title,
+        content,
+        mood
+      }
+    );
+
+   // Send a success response
+   res.status(200).json({ message: 'Entry updated successfully' });
+  } catch (error) {
+    console.error('Error updating entry:', error);
+    // Send an error response
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Creates a GET endpoint at <WHATEVER_THE_BASE_URL_IS>/students
 app.get('/entry_table', async (req, res) => {
   const { userId } = req.user;
