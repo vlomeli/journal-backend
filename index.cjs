@@ -197,7 +197,7 @@ app.put('/entry_table', async (req, res) => {
   }
 });
 
-// Creates a GET endpoint at <WHATEVER_THE_BASE_URL_IS>/students
+// GET endpoint to retrieve entries
 app.get('/entry_table', async (req, res) => {
   const { userId } = req.user;
 
@@ -220,4 +220,26 @@ app.delete('/entry_table/:id', async (req, res) => {
 // Start the Express server
 app.listen(port, () => {
   console.log(`server started at http://localhost:${port}`);
+});
+
+// GET endpoint to retrieve username
+app.get('/user_table', async (req, res) => {
+  const { userId } = req.user;
+
+  // Query to select Username from user_table where UserID matches the provided userId
+  const [user] = await req.db.query(`SELECT Username FROM user_table WHERE UserID = :userId;`, {
+    userId
+  });
+
+  // Check if a user was found
+  if (!user || user.length ===  0) {
+    // If no user is found, return an appropriate response
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  // Extract the Username from the first (and only) result
+  const username = user[0].Username;
+
+  // Attach JSON content to the response
+  res.json({ username });
 });
