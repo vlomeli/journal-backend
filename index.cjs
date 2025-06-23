@@ -220,13 +220,21 @@ app.get("/entry_table", async (req, res) => {
   const { userId } = req.user;
 
   const [entries] = await req.db.query(
-    `SELECT * FROM entry_table WHERE UserID = :userId AND DeletedFlag = 0;`,
+    `SELECT 
+      EntryID AS id,
+      UserID AS userId,
+      Title AS title,
+      Content AS content,
+      Mood AS mood,
+      DateCreated AS date
+    FROM entry_table
+    WHERE UserID = :userId AND DeletedFlag = 0
+    ORDER BY DateCreated DESC;`,
     {
       userId,
     }
   );
 
-  // Attaches JSON content to the response
   res.json({ entries });
 });
 
