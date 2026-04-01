@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.cjs",
   "scripts": {
-    "start": "node index",
-    "dev": "nodemon index"
+    "start": "node index.cjs",
+    "dev": "nodemon index.cjs"
   },
   "author": "",
   "license": "ISC",
