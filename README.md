@@ -41,9 +41,11 @@ Required variables:
 - `PORT`
 - `JWT_KEY`
 - `DB_HOST`
+- `DB_PORT`
 - `DB_USER`
 - `DB_PASSWORD`
 - `DB_NAME`
+- `CORS_ORIGIN`
 
 ### 3) Start the server
 
@@ -52,6 +54,43 @@ npm run dev
 ```
 
 Server will start on `http://localhost:<PORT>`.
+
+## Production Configuration
+
+For Render or another hosted backend platform, store all values in the platform's environment variable settings. Never commit a real `.env` file.
+
+Recommended production values:
+
+```bash
+NODE_ENV=production
+PORT=10000
+JWT_KEY=use-a-long-random-secret
+JWT_EXPIRES_IN=7d
+CORS_ORIGIN=https://your-frontend-domain.com
+DB_HOST=your-hosted-database-host
+DB_PORT=3306
+DB_USER=your-hosted-database-user
+DB_PASSWORD=your-hosted-database-password
+DB_NAME=your-hosted-database-name
+DB_SSL=true
+DB_SSL_REJECT_UNAUTHORIZED=true
+```
+
+If your database provider requires TLS and gives you a CA certificate, provide it with either `DB_SSL_CA` or `DB_SSL_CA_PATH`. If the provider requires encrypted traffic but does not provide a CA workflow that works on your host, `DB_SSL_REJECT_UNAUTHORIZED=false` can unblock the connection, but verified TLS is preferred.
+
+## Health Check
+
+The API exposes a lightweight health check that does not require database access:
+
+```http
+GET /health
+```
+
+Expected response:
+
+```json
+{ "status": "ok" }
+```
 
 ## Database Schema (Expected)
 
@@ -81,4 +120,3 @@ CREATE TABLE entry_table (
 
 - JWTs are signed with `JWT_EXPIRES_IN` (default `7d`).
 - Delete is a soft-delete via `DeletedFlag = 1`.
-

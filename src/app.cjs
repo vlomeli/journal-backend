@@ -17,6 +17,11 @@ module.exports = function createApp(config) {
 
   app.use(cors(buildCorsOptions(config.corsOrigin)));
   app.use(bodyParser.json());
+
+  app.get("/health", (req, res) => {
+    res.json({ status: "ok" });
+  });
+
   app.use(createDbConnectionMiddleware(pool, config));
 
   app.use(createAuthRouter(config));
