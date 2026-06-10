@@ -74,9 +74,19 @@ DB_PASSWORD=your-hosted-database-password
 DB_NAME=your-hosted-database-name
 DB_SSL=true
 DB_SSL_REJECT_UNAUTHORIZED=true
+JSON_BODY_LIMIT=100kb
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX=100
+LOGIN_RATE_LIMIT_WINDOW_MS=900000
+LOGIN_RATE_LIMIT_MAX=5
+REGISTER_RATE_LIMIT_WINDOW_MS=3600000
+REGISTER_RATE_LIMIT_MAX=5
 ```
 
 If your database provider requires TLS and gives you a CA certificate, provide it with either `DB_SSL_CA` or `DB_SSL_CA_PATH`. If the provider requires encrypted traffic but does not provide a CA workflow that works on your host, `DB_SSL_REJECT_UNAUTHORIZED=false` can unblock the connection, but verified TLS is preferred.
+
+Rate limiting is enabled by default. The defaults allow 100 general API requests per 15 minutes, 5 login attempts per 15 minutes, and 5 registration attempts per hour per IP.
 
 ## Health Check
 
@@ -99,9 +109,11 @@ This project expects these tables/columns (names/casing should match your MySQL 
 ```sql
 CREATE TABLE user_table (
   UserID INT AUTO_INCREMENT PRIMARY KEY,
-  Email VARCHAR(255),
+  Email VARCHAR(255) NOT NULL,
   Password VARCHAR(255) NOT NULL,
-  Username VARCHAR(255) NOT NULL
+  Username VARCHAR(255) NOT NULL,
+  UNIQUE KEY unique_email (Email),
+  UNIQUE KEY unique_username (Username)
 );
 
 CREATE TABLE entry_table (
@@ -112,6 +124,7 @@ CREATE TABLE entry_table (
   Content TEXT NOT NULL,
   Mood VARCHAR(32) NOT NULL,
   DeletedFlag TINYINT NOT NULL DEFAULT 0,
+  INDEX idx_entry_user_deleted_date (UserID, DeletedFlag, DateCreated),
   FOREIGN KEY (UserID) REFERENCES user_table(UserID)
 );
 ```

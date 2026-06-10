@@ -5,6 +5,7 @@ const bodyParser = require("body-parser");
 const createPool = require("./db/pool.cjs");
 const buildCorsOptions = require("./middleware/corsOptions.cjs");
 const createDbConnectionMiddleware = require("./middleware/dbConnection.cjs");
+const createRateLimiter = require("./middleware/rateLimit.cjs");
 const createVerifyJwtMiddleware = require("./middleware/verifyJwt.cjs");
 
 const createAuthRouter = require("./routes/auth.cjs");
@@ -15,12 +16,38 @@ module.exports = function createApp(config) {
   const app = express();
   const pool = createPool(config.db);
 
+  app.set("trust proxy", 1);
   app.use(cors(buildCorsOptions(config.corsOrigin)));
-  app.use(bodyParser.json());
+  app.use(bodyParser.json({ limit: config.jsonBodyLimit }));
 
   app.get("/health", (req, res) => {
     res.json({ status: "ok" });
   });
+
+  if (config.rateLimit.enabled) {
+    app.use(
+      createRateLimiter({
+        ...config.rateLimit.general,
+        keyPrefix: "general",
+      })
+    );
+    app.use(
+      "/login",
+      createRateLimiter({
+        ...config.rateLimit.login,
+        keyPrefix: "login",
+        message: "Too many login attempts. Please try again later.",
+      })
+    );
+    app.use(
+      "/register",
+      createRateLimiter({
+        ...config.rateLimit.register,
+        keyPrefix: "register",
+        message: "Too many registration attempts. Please try again later.",
+      })
+    );
+  }
 
   app.use(createDbConnectionMiddleware(pool, config));
 

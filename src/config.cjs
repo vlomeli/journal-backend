@@ -49,6 +49,27 @@ const corsOrigin = (
 ).trim();
 
 const dbTimeZone = process.env.DB_TIME_ZONE || "-8:00";
+const jsonBodyLimit = process.env.JSON_BODY_LIMIT || "100kb";
+const parsePositiveInt = (name, fallback) => {
+  const value = Number.parseInt(process.env[name], 10);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+};
+
+const rateLimit = {
+  enabled: process.env.RATE_LIMIT_ENABLED !== "false",
+  general: {
+    windowMs: parsePositiveInt("RATE_LIMIT_WINDOW_MS", 15 * 60 * 1000),
+    max: parsePositiveInt("RATE_LIMIT_MAX", 100),
+  },
+  login: {
+    windowMs: parsePositiveInt("LOGIN_RATE_LIMIT_WINDOW_MS", 15 * 60 * 1000),
+    max: parsePositiveInt("LOGIN_RATE_LIMIT_MAX", 5),
+  },
+  register: {
+    windowMs: parsePositiveInt("REGISTER_RATE_LIMIT_WINDOW_MS", 60 * 60 * 1000),
+    max: parsePositiveInt("REGISTER_RATE_LIMIT_MAX", 5),
+  },
+};
 
 module.exports = {
   env,
@@ -58,4 +79,6 @@ module.exports = {
   db,
   corsOrigin,
   dbTimeZone,
+  jsonBodyLimit,
+  rateLimit,
 };
